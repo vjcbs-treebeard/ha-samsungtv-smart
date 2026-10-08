@@ -193,6 +193,11 @@
     }
   },
   "entity": {
+    "sensor": {
+      "gamma_mode": {
+        "name": "Gamma mód"
+      }
+    },
     "button": {
       "reboot": {
         "name": "TV újraindítása"

@@ -362,6 +362,14 @@ class SamsungIPControl:
                 f"invalid backlight response: {result!r}"
             ) from ex
 
+    async def async_get_gamma_mode(self) -> str:
+        """Return the raw gamma mode without changing picture settings."""
+        result = await self._async_request("gammaModeControl")
+        value = result.get("gammaMode")
+        if not isinstance(value, str) or not value.strip():
+            raise SamsungIPControlError("missing or invalid gammaMode in response")
+        return value
+
     async def async_get_color_tone(self) -> str:
         """Return the current picture color tone."""
         result = await self._async_request("colorToneControl")

@@ -1,5 +1,9 @@
 # SamsungTV Smart and Art Mode
 
+**Gamma-mode fork:** this branch adds a raw, read-only gamma-mode sensor on top
+of TheFab21's integration. See [Gamma mode](docs/Gamma_mode.md) for its limits,
+installation from this fork's `master` branch, and local test commands.
+
 [![HACS](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://github.com/hacs/integration)
 [![Version](https://img.shields.io/github/v/release/TheFab21/ha-samsungtv-smart?style=flat&color=blue)](https://github.com/TheFab21/ha-samsungtv-smart/releases/latest)
 [![HA Version](https://img.shields.io/badge/Home%20Assistant-%3E%3D2025.6.0-green.svg)](https://www.home-assistant.io)

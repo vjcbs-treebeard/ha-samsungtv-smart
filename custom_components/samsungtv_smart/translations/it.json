@@ -193,6 +193,11 @@
     }
   },
   "entity": {
+    "sensor": {
+      "gamma_mode": {
+        "name": "Modalità gamma"
+      }
+    },
     "button": {
       "reboot": {
         "name": "Riavvia il televisore"

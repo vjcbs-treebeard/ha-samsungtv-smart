@@ -72,7 +72,7 @@ class ToleranceTest(unittest.TestCase):
 
     def test_it_keeps_the_previous_snapshot_when_there_is_one(self):
         self.assertIn("if self.data is not None:", self.block)
-        self.assertIn("return self.data", self.block)
+        self.assertIn('return {**self.data, "gamma": {}}', self.block)
 
     def test_it_has_a_first_refresh_fallback(self):
         # self.data is None before the first successful update.

@@ -194,7 +194,8 @@ class SamsungIPControlSensorDescription(SensorEntityDescription):
     """Describes an IP Control read-only state sensor.
 
     ``source`` selects which JSON-RPC snapshot the value is read from:
-    ``"tv"`` for ``getTVStates`` or ``"video"`` for ``getVideoStates``.
+    ``"tv"`` for ``getTVStates``, ``"video"`` for ``getVideoStates``, or
+    ``"gamma"`` for the optional ``gammaModeControl`` getter.
     """
 
     source: str = "tv"
@@ -252,6 +253,13 @@ IP_CONTROL_STATE_SENSORS: tuple[SamsungIPControlSensorDescription, ...] = (
         name="Volume",
         icon="mdi:volume-high",
         state_class=SensorStateClass.MEASUREMENT,
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
+    SamsungIPControlSensorDescription(
+        key="gammaMode",
+        source="gamma",
+        translation_key="gamma_mode",
+        icon="mdi:gamma",
         entity_category=EntityCategory.DIAGNOSTIC,
     ),
     # NOTE: the getVideoStates fields (contrast, brightness, sharpness, color,
@@ -599,9 +607,8 @@ async def async_setup_entry(  # noqa: C901
         except Exception as ex:
             _LOGGER.warning("Could not setup SmartThings sensors: %s", ex)
 
-    # Read-only IP Control state sensors (getTVStates / getVideoStates).
-    # Gated behind IP Control being paired AND enabled, sharing a single
-    # coordinator so each poll issues just two JSON-RPC calls for all 12.
+    # Read-only IP Control state sensors share one authenticated coordinator.
+    # Gated behind IP Control being paired AND enabled.
     if _ip_control_active(entry):
         state_coordinator = IPControlStateCoordinator(hass, entry, host)
         hass.data[DOMAIN][entry.entry_id][
@@ -2720,6 +2727,7 @@ class IPControlStateCoordinator(DataUpdateCoordinator):
     one getTVStates request (plus a cheap power-state check) regardless of how
     many sensors are enabled. When a non-Frame TV is on a tuner input, one
     optional directChannelControl request may also fetch local channel metadata.
+    Normal viewing also polls the optional raw gammaModeControl getter.
     The TV is skipped while it is powered off, both to
     avoid pointless traffic and because the state getters return stale values in
     standby. (The getVideoStates picture fields moved to settable number
@@ -2821,6 +2829,17 @@ class IPControlStateCoordinator(DataUpdateCoordinator):
             # displayed.
             art_mode_on = tv_states.get("pictureMode") == "Ambient"
 
+            gamma_states: dict[str, Any] = {}
+            if not art_mode_on:
+                try:
+                    gamma_states["gammaMode"] = await client.async_get_gamma_mode()
+                except SamsungIPControlAuthError:
+                    raise
+                except SamsungIPControlError as ex:
+                    # Optional picture getter: never reuse a previous gamma value
+                    # or invalidate the independent getTVStates snapshot.
+                    self._log.debug("IP Control gamma mode read unavailable: %s", ex)
+
             if (
                 tuner_active
                 and not art_mode_on
@@ -2890,7 +2909,8 @@ class IPControlStateCoordinator(DataUpdateCoordinator):
                     IP_CONTROL_READ_TRANSIENT_TOLERANCE,
                 )
                 if self.data is not None:
-                    return self.data
+                    # Gamma must describe this poll, not a held picture snapshot.
+                    return {**self.data, "gamma": {}}
                 return {"tv": {}, "channel": {}, "powered_off": False}
             raise UpdateFailed(
                 f"IP Control state read refused {self._transient_read_failures} "
@@ -2903,6 +2923,7 @@ class IPControlStateCoordinator(DataUpdateCoordinator):
         clear_token_problem(self.hass, self._entry.entry_id, METHOD_IP_CONTROL)
         return {
             "tv": tv_states,
+            "gamma": gamma_states,
             "channel": channel_states,
             "powered_off": False,
             "polled_at": polled_at,
@@ -2910,7 +2931,7 @@ class IPControlStateCoordinator(DataUpdateCoordinator):
 
 
 class IPControlStateSensor(CoordinatorEntity, SensorEntity):
-    """Read-only sensor for one getTVStates / getVideoStates field."""
+    """Read-only sensor for one field in the IP Control snapshots."""
 
     entity_description: SamsungIPControlSensorDescription
     _attr_has_entity_name = True
@@ -2958,4 +2979,8 @@ class IPControlStateSensor(CoordinatorEntity, SensorEntity):
             and _ip_control_active(entry)
             and self.coordinator.last_update_success
             and not data.get("powered_off")
+            and (
+                self.entity_description.source != "gamma"
+                or self.native_value is not None
+            )
         )

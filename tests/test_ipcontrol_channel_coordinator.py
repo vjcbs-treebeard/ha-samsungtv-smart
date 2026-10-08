@@ -57,6 +57,9 @@ def _client(*, source="TV"):
     client.async_get_tv_states.return_value = {
         "inputSource": source,
     }
+    client.async_get_gamma_mode.side_effect = SamsungIPControlUnsupportedError(
+        "Gamma mode getter unavailable"
+    )
     client.async_get_channel.return_value = {
         "atvDtv": "dtv",
         "airCable": "air",
@@ -96,6 +99,7 @@ async def test_tuner_channel_is_added_for_non_frame_tv(hass):
             "channelNum": "5",
         },
         "powered_off": False,
+        "gamma": {},
     }
     assert coordinator._channel_control_supported is True
     client.async_get_channel.assert_awaited_once_with()
@@ -180,6 +184,7 @@ async def test_transient_channel_error_does_not_disable_capability(hass):
         "tv": {"inputSource": "TV"},
         "channel": {},
         "powered_off": False,
+        "gamma": {},
     }
     assert coordinator._channel_control_supported is None
     client.async_get_channel.assert_awaited_once_with()

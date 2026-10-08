@@ -244,6 +244,9 @@
       }
     },
     "sensor": {
+      "gamma_mode": {
+        "name": "Mode gamma"
+      },
       "illuminance": {
         "name": "Luminosité ambiante"
       },

@@ -257,6 +257,9 @@
       }
     },
     "sensor": {
+      "gamma_mode": {
+        "name": "Gamma mode"
+      },
       "illuminance": {
         "name": "Illuminance"
       },

@@ -193,6 +193,11 @@
     }
   },
   "entity": {
+    "sensor": {
+      "gamma_mode": {
+        "name": "Modo gama"
+      }
+    },
     "button": {
       "reboot": {
         "name": "Reiniciar a TV"
